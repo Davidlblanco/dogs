@@ -1,41 +1,50 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Input from '../Forms/Input'
 import Button from '../Forms/Button'
+import UseForm from '../Hooks/UseForm';
+import { TOKEN_POST, USER_GET } from '../../api';
 
 function LoginForm() {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [token, setToken] = useState('');
+    // const [token, setToken] = useState(' ');
+    const username = UseForm();
+    const password = UseForm();
 
-    function handleSubmit(e) {
+    useEffect(() => {
+        const token = window.localStorage.getItem('token')
+        if (token) {
+            getUser(token)
+        }
+    }, [])
+
+    async function getUser(token) {
+        const { url, options } = USER_GET(token)
+        const response = await fetch(url, options)
+        const json = await response.json();
+        console.log(json)
+
+    }
+
+    async function handleSubmit(e) {
         e.preventDefault();
-        fetch('https://dogsapi.origamid.dev/json/jwt-auth/v1/token',
-            {
-                method: 'post',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(
-                    {
-                        username,
-                        password
-                    })
+        if (username.validate() && password.validate()) {
+            const { url, options } = TOKEN_POST({
+                username: username.value,
+                password: password.value
             })
-            .then(data => {
-                console.log(data)
-                return data.json()
-            })
-            .then(json => {
-                console.log(json)
-                setToken(json.token)
-                return json;
-            })
+            const response = await fetch(url, options);
+            const json = await response.json();
+            console.log(json);
+            window.localStorage.setItem('token', json.token)
+            getUser(json.token)
+        }
     }
     return (
         <section onSubmit={handleSubmit}>
             <h1>Login</h1>
             <form action="">
-                <Input label='Username' name='username' type='text' ></Input>
-                <Input label='Password' name='password' type='password'  ></Input>
+                <Input label='Username' name='username' type='text' {...username} ></Input>
+                <Input label='Password' name='password' type='password'  {...password} ></Input>
                 <Button >Login</Button>
                 {/* <input type='text' value={username} onChange={({ target }) => setUsername(target.value)}></input>
                 <input type='password' value={password} onChange={({ target }) => setPassword(target.value)}></input> */}
